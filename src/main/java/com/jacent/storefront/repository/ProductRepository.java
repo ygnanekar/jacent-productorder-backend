@@ -1,0 +1,27 @@
+package com.jacent.storefront.repository;
+
+import com.jacent.storefront.query.ProductQueries;
+import com.jacent.storefront.pojo.Product;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public class ProductRepository {
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    ProductQueries productQueries;
+
+    public List<Product> findAll() {
+        return jdbcTemplate.query(
+                productQueries.getAllProducts(),
+                new BeanPropertyRowMapper<>(Product.class)
+        );
+    }
+}
