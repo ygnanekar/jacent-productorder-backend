@@ -1,0 +1,49 @@
+package com.jacent.storefront.controller;
+
+import com.jacent.storefront.dto.request.CartItemRequest;
+import com.jacent.storefront.dto.response.CartResponse;
+import com.jacent.storefront.service.CartService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.nio.file.AccessDeniedException;
+
+@RequestMapping("/api/v1/cart")
+@RestController
+public class CartController {
+
+    private final CartService cartService;
+    CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
+
+    @GetMapping
+    public ResponseEntity<CartResponse> getCart() {
+        return ResponseEntity.ok(cartService.getCartByUser());
+    }
+
+    @PostMapping("/items")
+    public ResponseEntity<CartResponse> addItemToCart(@Valid @RequestBody CartItemRequest cartItemRequest) {
+        CartResponse cart = cartService.addItemToCart(cartItemRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cart);
+    }
+
+    @PutMapping("/{cartItemId}")
+    public ResponseEntity<CartResponse> updateItem(@PathVariable int cartItemId,
+            @Valid @RequestBody CartItemRequest request) throws AccessDeniedException {
+        return ResponseEntity.ok(cartService.updateItem(cartItemId, request));
+    }
+
+    @DeleteMapping("/items/{cartItemId}")
+    public ResponseEntity<CartResponse> removeItem(@PathVariable int cartItemId) throws AccessDeniedException {
+        return ResponseEntity.ok(cartService.removeItem(cartItemId));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart() {
+        cartService.clearCart();
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -6,7 +6,7 @@ import com.jacent.storefront.dto.request.RefreshTokenRequest;
 import com.jacent.storefront.dto.request.RegisterRequest;
 import com.jacent.storefront.dto.response.AuthResponse;
 import com.jacent.storefront.dto.response.UserResponse;
-import com.jacent.storefront.pojo.User;
+import com.jacent.storefront.entity.User;
 import com.jacent.storefront.repository.UserRepository;
 import com.jacent.storefront.security.JwtService;
 import com.jacent.storefront.service.AuthService;

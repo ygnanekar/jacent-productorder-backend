@@ -1,3 +1,4 @@
 product:
   queries:
-    all-products: SELECT product_id, product_name, category, division, upc_code, sale_unit, price, retail_price, note FROM products
+    productCount: SELECT COUNT(*) FROM products
+    allProducts: SELECT product_id, product_name, category, division, upc_code, sale_unit, price, retail_price, note FROM products LIMIT ? OFFSET ?

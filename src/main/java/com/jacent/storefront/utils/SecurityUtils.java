@@ -1,6 +1,6 @@
 package com.jacent.storefront.utils;
 
-import com.jacent.storefront.pojo.User;
+import com.jacent.storefront.entity.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 

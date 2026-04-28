@@ -13,5 +13,6 @@ import org.springframework.context.annotation.PropertySource;
 @Data
 public class ProductQueries {
 
+    private String productCount;
     private String allProducts;
 }

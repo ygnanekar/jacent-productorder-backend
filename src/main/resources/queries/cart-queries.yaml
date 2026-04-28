@@ -1,0 +1,12 @@
+cart:
+  queries:
+    cartByCartId: SELECT cart_id, user_id, created_at, updated_at FROM carts WHERE cart_id = ?
+    cartByUserId: SELECT cart_id, user_id, created_at, updated_at FROM carts WHERE user_id = ?
+    createCart: INSERT INTO carts (user_id) VALUES (?)
+    addItemToCart: INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)
+    deleteCart: DELETE FROM carts WHERE cart_id = ?
+    deleteCartItemByCartItemId: DELETE FROM cart_items WHERE cart_item_id = ?
+    cartItemsByCartId: SELECT cart_item_id, cart_id, product_id, quantity, added_at, updated_at FROM cart_items WHERE cart_id = ?
+    cartItemByCartItemId: SELECT cart_item_id, cart_id, product_id, quantity, added_at, updated_at FROM cart_items WHERE cart_item_id = ?
+    updateCartItemQuantity: UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE cart_item_id = ?
+    cartItemByCartIdAndProductId: SELECT cart_item_id, cart_id, product_id, quantity, added_at, updated_at FROM cart_items WHERE cart_id = ? AND product_id = ?

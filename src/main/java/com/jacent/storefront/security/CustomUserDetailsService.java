@@ -1,6 +1,6 @@
 package com.jacent.storefront.security;
 
-import com.jacent.storefront.pojo.User;
+import com.jacent.storefront.entity.User;
 import com.jacent.storefront.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,6 +1,6 @@
 package com.jacent.storefront.repository;
 
-import com.jacent.storefront.pojo.User;
+import com.jacent.storefront.entity.User;
 import com.jacent.storefront.query.UserQueries;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;

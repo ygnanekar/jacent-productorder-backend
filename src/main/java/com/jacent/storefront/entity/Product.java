@@ -1,4 +1,4 @@
-package com.jacent.storefront.pojo;
+package com.jacent.storefront.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
