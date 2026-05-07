@@ -1,16 +1,14 @@
 package com.jacent.storefront.service.impl;
 
 import com.jacent.storefront.dto.response.ItemsResponse;
-import com.jacent.storefront.entity.Commodity;
-import com.jacent.storefront.entity.Configuration;
-import com.jacent.storefront.entity.Division;
-import com.jacent.storefront.entity.Item;
+import com.jacent.storefront.entity.*;
 import com.jacent.storefront.repository.CommodityRepository;
 import com.jacent.storefront.repository.DivisionRepository;
 import com.jacent.storefront.repository.ItemRepository;
 import com.jacent.storefront.service.ConfigurationService;
 import com.jacent.storefront.service.ItemService;
 import com.jacent.storefront.service.OpenSearchService;
+import com.jacent.storefront.utils.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -51,10 +49,10 @@ public class ItemServiceImpl implements ItemService {
         if(pageSize == null){
             pageSize = configurationService.getValueAsInteger(Configuration.PAGINATION_SIZE, 25);
         }
+        User user = SecurityUtils.getCurrentUser();
+        long total = itemRepository.getTotalItemsCount(user.getStoreId());
 
-        long total = itemRepository.getTotalItemsCount();
-
-        List<Item> itemList = itemRepository.getAllItemsPagination(pageNo, pageSize);
+        List<Item> itemList = itemRepository.getAllItemsPagination(pageNo, pageSize, user.getStoreId());
         return ItemsResponse.builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
@@ -79,7 +77,8 @@ public class ItemServiceImpl implements ItemService {
     public void rebuildOpenSearchIndexForItems() {
         try {
             // TODO: add in bulk (maybe create separate index for store)
-            List<Item> itemList = itemRepository.getAllItemsPagination(0, 1000);
+            User user = SecurityUtils.getCurrentUser();
+            List<Item> itemList = itemRepository.getAllItemsPagination(0, 1000, user.getStoreId());
             openSearchService.bulkIndexProducts(itemList);
         } catch (Exception e){
             log.error("Error occured while bulkIndexProducts");
