@@ -1,17 +1,30 @@
 item:
   queries:
-    itemCount: SELECT COUNT(*) from VW_AUTHORIZED_PRODUCT_CATALOG
+    itemCount: |
+            SELECT
+              COUNT(*)
+            FROM 
+              fact_store_authorized_items fsai,
+              products p
+            WHERE
+               p.PRODUCT_ID = fsai.ITEM_ID AND
+               fsai.STORE_ID = :storeId
     divisions: SELECT DISTINCT(DIVISION_NAME_ID), DIVISION, DIVNAME FROM VW_AUTHORIZED_PRODUCT_CATALOG ORDER BY DIVISION_NAME_ID
     commodities: SELECT DISTINCT(COMMODITY) FROM VW_AUTHORIZED_PRODUCT_CATALOG
     allItems: |
       SELECT
-      DIVISION as division,
-      COMMODITY,
-      UPC_CODE,
-      ITEM_ID,
-      ITEM_NAME,
-      ITEM_DESC,
+      DIVISION_NAME_ID as division,
+      COMMODITY_ID as COMMODITY,
+      p.UPC_CODE,
+      p.PRODUCT_ID ITEM_ID,
+      p.PRODUCT_NAME ITEM_NAME,
+      p.PRODUCT_DESC ITEM_DESC,
       PRICE,
-      RETAIL_PRICE,
-      ORDER_RANK
-      FROM VW_AUTHORIZED_PRODUCT_CATALOG LIMIT ? OFFSET ?
+      RETAIL_PRICE
+      FROM 
+        fact_store_authorized_items fsai,
+        products p
+      WHERE
+         p.PRODUCT_ID = fsai.ITEM_ID AND
+         fsai.STORE_ID = :storeId
+      LIMIT :size OFFSET :offset
