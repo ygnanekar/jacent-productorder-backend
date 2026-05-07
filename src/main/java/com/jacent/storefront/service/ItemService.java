@@ -17,4 +17,6 @@ public interface ItemService {
     ItemsResponse getItems(Integer pageNo, Integer pageSize);
 
     List<Item> searchItems(String searchString) throws IOException;
+
+    void rebuildOpenSearchIndexForItems();
 }

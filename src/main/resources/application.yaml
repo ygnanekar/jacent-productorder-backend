@@ -49,4 +49,4 @@ opensearch:
   port: 9200
   scheme: https
   username: admin
-  password: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+  password: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD:admin}

@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -54,11 +55,6 @@ public class ItemServiceImpl implements ItemService {
         long total = itemRepository.getTotalItemsCount();
 
         List<Item> itemList = itemRepository.getAllItemsPagination(pageNo, pageSize);
-//        try {
-//            openSearchService.bulkIndexProducts(itemList);
-//        } catch (Exception e){
-//            log.error("Error occured while bulkIndexProducts");
-//        }
         return ItemsResponse.builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
@@ -70,6 +66,23 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> searchItems(String searchString) throws IOException {
-        return openSearchService.searchItems(searchString);
+        boolean enableFullTextOpenSearch = configurationService.getValueAsBoolean(Configuration.ENABLE_FULL_TEXT_OPEN_SEARCH, false);
+        if(enableFullTextOpenSearch){
+            return openSearchService.searchItems(searchString);
+        } else {
+            // TODO: Search from DB
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public void rebuildOpenSearchIndexForItems() {
+        try {
+            // TODO: add in bulk (maybe create separate index for store)
+            List<Item> itemList = itemRepository.getAllItemsPagination(0, 1000);
+            openSearchService.bulkIndexProducts(itemList);
+        } catch (Exception e){
+            log.error("Error occured while bulkIndexProducts");
+        }
     }
 }
