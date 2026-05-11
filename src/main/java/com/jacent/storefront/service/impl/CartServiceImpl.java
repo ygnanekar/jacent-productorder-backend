@@ -4,6 +4,7 @@ import com.jacent.storefront.dto.request.CartItemRequest;
 import com.jacent.storefront.dto.response.CartItemResponse;
 import com.jacent.storefront.dto.response.CartResponse;
 import com.jacent.storefront.entity.Item;
+import com.jacent.storefront.exception.AccessDeniedException;
 import com.jacent.storefront.exception.ResourceNotFoundException;
 import com.jacent.storefront.entity.Cart;
 import com.jacent.storefront.entity.CartItem;
@@ -12,12 +13,10 @@ import com.jacent.storefront.repository.CartRepository;
 import com.jacent.storefront.repository.ItemRepository;
 import com.jacent.storefront.service.CartService;
 import com.jacent.storefront.utils.SecurityUtils;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,10 +42,13 @@ public class CartServiceImpl implements CartService {
 
     @Transactional
     @Override
-    public CartResponse addItemToCart(CartItemRequest cartItemRequest) {
+    public CartResponse addItemToCart(CartItemRequest cartItemRequest) throws AccessDeniedException {
         User user = SecurityUtils.getCurrentUser();
         Cart cart = getOrCreateCart(user.getUserId());
-
+        Item item = itemRepository.getItemById(cartItemRequest.getItemId());
+        if(!item.getStoreId().equals(user.getStoreId())){
+            throw new AccessDeniedException("You cannot add items from a different store to your cart");
+        }
         Optional<CartItem> existing = cartRepository
                 .findItemByCartIdAndItemId(cart.getCartId(), cartItemRequest.getItemId());
 

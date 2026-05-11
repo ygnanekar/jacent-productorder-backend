@@ -2,13 +2,13 @@ package com.jacent.storefront.controller;
 
 import com.jacent.storefront.dto.request.CartItemRequest;
 import com.jacent.storefront.dto.response.CartResponse;
+import com.jacent.storefront.exception.AccessDeniedException;
 import com.jacent.storefront.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
 
 @RequestMapping("/api/v1/cart")
 @RestController
@@ -25,7 +25,7 @@ public class CartController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<CartResponse> addItemToCart(@Valid @RequestBody CartItemRequest cartItemRequest) {
+    public ResponseEntity<CartResponse> addItemToCart(@Valid @RequestBody CartItemRequest cartItemRequest) throws AccessDeniedException {
         CartResponse cart = cartService.addItemToCart(cartItemRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(cart);
     }

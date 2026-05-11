@@ -32,7 +32,8 @@ item:
         i.ITEM_NAME,
         i.ITEM_DESC,
         PRICE,
-        RETAIL_PRICE
+        RETAIL_PRICE,
+        fsai.STORE_ID as STORE_ID
       FROM 
         fact_store_authorized_items fsai,
         items i
@@ -57,7 +58,8 @@ item:
         i.ITEM_NAME,
         i.ITEM_DESC,
         PRICE,
-        RETAIL_PRICE
+        RETAIL_PRICE,
+        fsai.STORE_ID as STORE_ID
       FROM 
         fact_store_authorized_items fsai,
         items i
@@ -73,7 +75,8 @@ item:
         i.ITEM_NAME,
         i.ITEM_DESC,
         PRICE,
-        RETAIL_PRICE
+        RETAIL_PRICE,
+        fsai.STORE_ID as STORE_ID
       FROM 
         fact_store_authorized_items fsai,
         items i

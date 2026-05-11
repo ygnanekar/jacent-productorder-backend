@@ -28,4 +28,5 @@ public class Item {
     private String mvid;
     private String rank;
     private String orderRank;
+    private String storeId;
 }
