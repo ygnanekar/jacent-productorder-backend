@@ -11,7 +11,10 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource(value = "classpath:queries/user-queries.yaml", factory = YamlPropertySourceFactory.class)
 @Data
 public class UserQueries {
+    private String userByUserId;
     private String userByEmail;
     private String emailExists;
     private String createUser;
+    private String activateUser;
+    private String updatePassword;
 }

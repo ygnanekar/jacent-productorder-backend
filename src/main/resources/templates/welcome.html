@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;color:#1f2937">
+
+<h2 style="color:#4F46E5">Welcome, <span th:text="${username}">User</span>!</h2>
+
+<p>Thanks for signing up. Before you get started, please verify your email address
+    by clicking the button below.</p>
+
+<p>This link expires in <strong th:text="${expiryHours}">24</strong> hours.</p>
+
+<a th:href="${activationLink}"
+   style="display:inline-block;padding:12px 24px;background:#4F46E5;color:#fff;
+            border-radius:6px;text-decoration:none;margin:16px 0">
+    Activate my account
+</a>
+
+<p>Or copy and paste this link into your browser:</p>
+<p th:text="${activationLink}" style="color:#6B7280;font-size:13px;word-break:break-all"></p>
+
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+
+<p style="color:#9CA3AF;font-size:12px">
+    If you didn't create this account, you can safely ignore this email.<br/>
+    This link expires in <span th:text="${expiryHours}">24</span> hours.
+</p>
+
+</body>
+</html>

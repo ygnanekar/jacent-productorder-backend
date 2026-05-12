@@ -1,0 +1,15 @@
+verification-token:
+  queries:
+    saveToken: |
+      INSERT INTO verification_tokens (token, token_type, user_id, expires_at, used)
+      VALUES (:token, :tokenType, :userId, :expiresAt, :used)
+    verificationTokenByToken: |
+      SELECT * FROM verification_tokens WHERE token = :token
+    verificationTokenByTokenAndType: |
+      SELECT * FROM verification_tokens WHERE token = :token  AND token_type = :tokenType
+    deleteVerificationTokenByToken: |
+      DELETE FROM verification_tokens WHERE token = :token
+    deleteVerificationTokenByUserIdAndTokenType: | 
+      DELETE FROM verification_tokens WHERE user_id = :userId AND token_type = :tokenType
+    deleteAllExpiredTokens: |
+      DELETE FROM verification_tokens t WHERE t.expires_at < :now

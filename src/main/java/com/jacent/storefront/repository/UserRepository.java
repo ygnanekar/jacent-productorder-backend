@@ -2,9 +2,12 @@ package com.jacent.storefront.repository;
 
 import com.jacent.storefront.entity.User;
 import com.jacent.storefront.exception.ResourceCreationException;
+import com.jacent.storefront.exception.ResourceNotFoundException;
+import com.jacent.storefront.exception.ResourceInundationException;
 import com.jacent.storefront.query.UserQueries;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -16,6 +19,8 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Repository
@@ -54,6 +59,20 @@ public class UserRepository {
             );
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException("User not found with email: " + email);
+        }
+    }
+
+    public User findByUserId(int userId) {
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("userId", userId);
+            return namedParameterJdbcTemplate.queryForObject(
+                    userQueries.getUserByUserId(),
+                    params,
+                    new BeanPropertyRowMapper<>(User.class)
+            );
+        } catch (EmptyResultDataAccessException e) {
+            throw new UsernameNotFoundException("User not found with userId: " + userId);
         }
     }
 
@@ -96,6 +115,52 @@ public class UserRepository {
         log.info("User created successfully with ID: {} and email: {}", userId, user.getEmail());
 
         return user;
+    }
+
+    public int activateUser(int userId, String encodedPassword) {
+        log.info("Activating user with userId: {}", userId);
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                    .addValue("userId", userId)
+                    .addValue("encodedPassword", encodedPassword)
+                    .addValue("now",    LocalDateTime.now());
+
+            int rows = namedParameterJdbcTemplate.update(userQueries.getActivateUser(), params);
+
+            if (rows == 0) {
+                log.warn("No inactive user found to activate for userId: {}", userId);
+                throw new ResourceCreationException("User not found or already active for userId: " + userId);
+            }
+
+            log.info("User activated successfully for userId: {}", userId);
+            return rows;
+
+        } catch (ResourceCreationException e) {
+            throw e;
+        } catch (DataAccessException e) {
+            log.error("Database error while activating userId: {}", userId, e);
+            throw new ResourceInundationException("Failed to activate user for userId: " + userId, e);
+        }
+    }
+
+    public void updatePassword(long userId, String encodedPassword) {
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                    .addValue("encodedPassword", encodedPassword)
+                    .addValue("now", LocalDateTime.now())
+                    .addValue("userId", userId);
+
+            int rows = namedParameterJdbcTemplate.update(userQueries.getUpdatePassword(), params);
+            if (rows == 0) {
+                throw new ResourceCreationException("No user found with id: " + userId);
+            }
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (DataIntegrityViolationException e) {
+            throw new ResourceInundationException("Password update violated a database constraint", e);
+        } catch (DataAccessException e) {
+            throw new ResourceInundationException("Database error while updating password for userId: " + userId);
+        }
     }
 
 }

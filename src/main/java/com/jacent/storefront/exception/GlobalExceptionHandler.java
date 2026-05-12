@@ -32,6 +32,26 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceAlreadyExistsException(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceCreationException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceCreationException(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceInvalidException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceInvalidException(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceInundationException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceInundationException(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleSpringAccessDenied(
             org.springframework.security.access.AccessDeniedException ex) {
