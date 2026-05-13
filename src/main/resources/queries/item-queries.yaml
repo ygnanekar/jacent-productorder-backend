@@ -2,92 +2,84 @@ item:
   queries:
     divisionsByStoreId: |
       SELECT 
-      	DISTINCT(d.DIVISION_NAME_ID), 
-          d.DIVISION, 
-          d.DIVNAME
+      	d.DIVISION_NAME_ID, 
+        d.DIVISION, 
+        d.DIVNAME
       FROM 
-      	division d,
-          fact_store_authorized_items fsai
+      	VW_DIVISION d,
+        VW_STORE s,
       WHERE 
-          d.DIVISION_NAME_ID = fsai.DIVISION_NAME_ID AND 
-          fsai.STORE_ID = :storeId
+          d.DIVISION_NAME_ID = s.DIVISION_NAME_ID AND 
+          s.STORE_ID = :storeId
       ORDER BY DIVISION_NAME_ID
     commoditiesByStoreId: |
       SELECT 
-      	DISTINCT(c.COMMODITY_ID), 
-          c.COMMODITY
+      	DISTINCT(c.COMMODITY_ID) as COMMODITY_ID,
+        c.COMMODITY as COMMODITY
       FROM 
-      	commodity c,
-          fact_store_authorized_items fsai
+      	VW_COMMODITY c,
+        VW_STORE s
       WHERE 
-          c.COMMODITY_ID = fsai.COMMODITY_ID AND 
-          fsai.STORE_ID = :storeId
+          c.DIVISION_NAME_ID = s.DIVISION_NAME_ID AND 
+          s.STORE_ID = :storeId
       ORDER BY COMMODITY_ID
     itemById: |
       SELECT
         DIVISION_NAME_ID as division,
-        COMMODITY_ID as COMMODITY,
-        i.UPC_CODE,
-        i.ITEM_ID,
-        i.ITEM_NAME,
-        i.ITEM_DESC,
+        COMMODITY,
+        UPC_CODE,
+        ITEM_ID,
+        ITEM_NAME,
+        ITEM_DESC,
         PRICE,
         RETAIL_PRICE,
-        fsai.STORE_ID as STORE_ID
+        STORE_ID
       FROM 
-        fact_store_authorized_items fsai,
-        items i
+        VW_AUTHORIZED_PRODUCT_CATALOG
       WHERE
-         i.ITEM_ID = fsai.ITEM_ID AND
-         fsai.STORE_ID = :storeId AND
-         i.ITEM_ID = :itemId
+         STORE_ID = :storeId AND
+         ITEM_ID = :itemId
       LIMIT 1
     itemCountByStoreId: |
-            SELECT
-              COUNT(*)
-            FROM 
-              fact_store_authorized_items fsai,
-              items i
-            WHERE
-               i.ITEM_ID = fsai.ITEM_ID AND
-               fsai.STORE_ID = :storeId
+      SELECT
+        COUNT(*)
+      FROM 
+        VW_AUTHORIZED_PRODUCT_CATALOG
+      WHERE
+         STORE_ID = :storeId
     allItemsByStoreId: |
       SELECT
-        DIVISION_NAME_ID as division,
-        COMMODITY_ID as COMMODITY,
-        i.UPC_CODE,
-        i.ITEM_ID,
-        i.ITEM_NAME,
-        i.ITEM_DESC,
+        DIVISION_NAME_ID as DIVISION,
+        COMMODITY,
+        UPC_CODE,
+        ITEM_ID,
+        ITEM_NAME,
+        ITEM_DESC,
         PRICE,
         RETAIL_PRICE,
-        fsai.STORE_ID as STORE_ID
+        STORE_ID
       FROM 
-        fact_store_authorized_items fsai,
-        items i
+        VW_AUTHORIZED_PRODUCT_CATALOG
       WHERE
-         i.ITEM_ID = fsai.ITEM_ID AND
-         fsai.STORE_ID = :storeId
+         STORE_ID = :storeId
     searchItemsByStoreIdAndSearchKeyword: |
       SELECT
+        DISTINCT(ITEM_ID),
         DIVISION_NAME_ID as division,
-        COMMODITY_ID as COMMODITY,
-        i.UPC_CODE,
-        i.ITEM_ID,
-        i.ITEM_NAME,
-        i.ITEM_DESC,
+        COMMODITY,
+        UPC_CODE,
+        ITEM_NAME,
+        ITEM_DESC,
         PRICE,
         RETAIL_PRICE,
-        fsai.STORE_ID as STORE_ID
+        STORE_ID
       FROM 
-        fact_store_authorized_items fsai,
-        items i
+        VW_AUTHORIZED_PRODUCT_CATALOG
       WHERE
-         i.ITEM_ID = fsai.ITEM_ID AND
-         fsai.STORE_ID = :storeId AND
-         i.item_name LIKE :search OR 
-         i.item_desc LIKE :search OR 
-         i.upc_code LIKE :search OR 
-         COMMODITY_ID LIKE :search OR 
+         STORE_ID = :storeId AND
+         ITEM_NAME LIKE :search OR 
+         ITEM_DESC LIKE :search OR 
+         UPC_CODE LIKE :search OR 
+         COMMODITY LIKE :search OR 
          DIVISION_NAME_ID LIKE :search
       LIMIT :size

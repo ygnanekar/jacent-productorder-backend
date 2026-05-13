@@ -13,7 +13,7 @@ public class ItemsFilterRequest {
     @NotNull(message = "Page ID is required")
     private Integer pageNo = 0;
     private Integer pageSize = 25;
-    private List<Integer> commodityIds = new ArrayList<>();
+    private List<String> commodities = new ArrayList<>();
     private BigDecimal priceRangeMin;
     private BigDecimal priceRangeMax;
 }
