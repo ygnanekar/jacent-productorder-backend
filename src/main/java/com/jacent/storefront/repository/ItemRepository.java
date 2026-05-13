@@ -129,9 +129,9 @@ public class ItemRepository {
     }
 
     private static void appendCommodityAndPriceFilterQuery(StringBuilder sql, ItemsFilterRequest itemsFilterRequest, MapSqlParameterSource params) {
-        if (itemsFilterRequest.getCommodityIds() != null && !itemsFilterRequest.getCommodityIds().isEmpty()) {
-            sql.append(" AND COMMODITY_ID IN (:commodityIds) ");
-            params.addValue("commodityIds", itemsFilterRequest.getCommodityIds());
+        if (itemsFilterRequest.getCommodities() != null && !itemsFilterRequest.getCommodities().isEmpty()) {
+            sql.append(" AND COMMODITY IN (:commodityIds) ");
+            params.addValue("commodityIds", itemsFilterRequest.getCommodities());
         }
 
         if (itemsFilterRequest.getPriceRangeMin() != null && itemsFilterRequest.getPriceRangeMin() != null && itemsFilterRequest.getPriceRangeMin().intValue() > 0 && itemsFilterRequest.getPriceRangeMax().intValue() > 0) {
