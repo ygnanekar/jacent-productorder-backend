@@ -36,57 +36,70 @@ public class CartServiceImpl implements CartService {
     public CartResponse getCartByUser() {
         User user = SecurityUtils.getCurrentUser();
         Cart cart = getOrCreateCart(user.getUserId());
-        List<CartItem> items = cartRepository.findItemsByCartId(cart.getCartId());
-        return toCartResponse(cart, items);
+        List<CartItem> cartItems = cartRepository.findItemsByCartId(cart.getCartId());
+        List<Item> items = List.of();
+        if(cartItems.size() > 0){
+            List<Integer> itemIds = cartItems.stream().map(cartItem -> cartItem.getItemId()).toList();
+            items = itemRepository.getAllItemsByIdIn(user.getStoreId(), itemIds);
+        }
+        return toCartResponse(cart, cartItems, items);
     }
 
     @Transactional
     @Override
-    public CartResponse addItemToCart(CartItemRequest cartItemRequest) throws AccessDeniedException {
+    public CartItemResponse addItemToCart(CartItemRequest cartItemRequest) throws AccessDeniedException {
         User user = SecurityUtils.getCurrentUser();
         Cart cart = getOrCreateCart(user.getUserId());
-        Item item = itemRepository.getItemById(cartItemRequest.getItemId());
+        Item item = itemRepository.getItemById(user.getStoreId(), cartItemRequest.getItemId());
         if(!item.getStoreId().equals(user.getStoreId())){
             throw new AccessDeniedException("You cannot add items from a different store to your cart");
         }
         Optional<CartItem> existing = cartRepository
                 .findItemByCartIdAndItemId(cart.getCartId(), cartItemRequest.getItemId());
 
+        CartItem cartItem;
         if (existing.isPresent()) {
-            cartRepository.updateItemQuantity(existing.get().getCartItemId(), cartItemRequest.getQuantity());
+            cartItem = cartRepository.updateItemQuantity(existing.get().getCartItemId(), cartItemRequest.getQuantity());
         } else {
-            cartRepository.addItemToCart(cart.getCartId(), cartItemRequest);
+            cartItem = cartRepository.addItemToCart(cart.getCartId(), cartItemRequest);
         }
-
-        List<CartItem> items = cartRepository.findItemsByCartId(cart.getCartId());
-        return toCartResponse(cart, items);
+        return toCartItemResponse(item, cartItem);
     }
 
 
     // Update quantity
     @Override
-    public CartResponse updateItem(int cartItemId, CartItemRequest request) throws AccessDeniedException {
+    public CartItemResponse updateItem(String cartItemId, CartItemRequest request) throws AccessDeniedException {
         User user = SecurityUtils.getCurrentUser();
         // ✓ verify item belongs to user's cart
-        verifyCartItemOwnership(user.getUserId(), cartItemId);
+        CartItem cartItem = cartRepository.findItemById(cartItemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found: " + cartItemId));
 
-        Cart cart = getOrCreateCart(user.getUserId());
-        cartRepository.updateItemQuantity(cartItemId, request.getQuantity());
-        List<CartItem> items = cartRepository.findItemsByCartId(cart.getCartId());
-        return toCartResponse(cart, items);
+        Cart cart = cartRepository.findCartById(cartItem.getCartId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found: "+ cartItem.getCartId()));
+
+        verifyCartItemOwnership(user.getUserId(), cart);
+        Item item = itemRepository.getItemById(user.getStoreId(), request.getItemId());
+        CartItem updatedCartItem = cartRepository.updateItemQuantity(cartItemId, request.getQuantity());
+        return toCartItemResponse(item, updatedCartItem);
     }
 
     // Remove single item
     @Override
-    public CartResponse removeItem(int cartItemId) throws AccessDeniedException {
+    public Boolean removeItem(String cartItemId) throws AccessDeniedException {
         User user = SecurityUtils.getCurrentUser();
-        // ✓ verify item belongs to user's cart
-        verifyCartItemOwnership(user.getUserId(), cartItemId);
 
-        Cart cart = getOrCreateCart(user.getUserId());
+        CartItem cartItem = cartRepository.findItemById(cartItemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found: " + cartItemId));
+
+        Cart cart = cartRepository.findCartById(cartItem.getCartId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found: "+ cartItem.getCartId()));
+
+        // ✓ verify item belongs to user's cart
+        verifyCartItemOwnership(user.getUserId(), cart);
+
         cartRepository.removeItem(cartItemId);
-        List<CartItem> items = cartRepository.findItemsByCartId(cart.getCartId());
-        return toCartResponse(cart, items);
+        return true;
     }
 
     // Clear all items
@@ -95,56 +108,61 @@ public class CartServiceImpl implements CartService {
     public void clearCart() {
         User user = SecurityUtils.getCurrentUser();
         cartRepository.findCartByUserId(user.getUserId())
-                .ifPresent(cart -> cartRepository.clearCart(cart.getCartId()));
+                .ifPresent(cart -> {
+                    // ✓ verify item belongs to user's cart
+                    verifyCartItemOwnership(user.getUserId(), cart);
+                    cartRepository.clearCart(cart.getCartId());
+                });
     }
 
     // Get or create active cart
-    private Cart getOrCreateCart(int userId) {
+    private Cart getOrCreateCart(String userId) {
         return cartRepository.findCartByUserId(userId)
                 .orElseGet(() -> cartRepository.createCart(userId));
     }
 
-    public Cart verifyCartOwnership(int userId, int cartId) throws AccessDeniedException {
+    public Cart verifyCartOwnership(String userId, String cartId) throws AccessDeniedException {
         Cart cart = cartRepository.findCartById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found: " + cartId));
 
-        if (cart.getUserId() != userId) {
+        if (!userId.equals(cart.getUserId())) {
             log.warn("Unauthorized cart access: userId={} tried to access cartId={}", userId, cartId);
             throw new AccessDeniedException("You do not have access to this cart");
         }
         return cart;
     }
 
-    public CartItem verifyCartItemOwnership(int userId, int cartItemId) throws AccessDeniedException {
-        CartItem item = cartRepository.findItemById(cartItemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found: " + cartItemId));
-
-        Cart cart = cartRepository.findCartById(item.getCartId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found: "+ item.getCartId()));
-
-        if (cart.getUserId() != userId) {
-            log.warn("Unauthorized cart item access: userId={} tried to access cartItemId={}", userId, cartItemId);
+    private void verifyCartItemOwnership(String userId, Cart cart) throws AccessDeniedException {
+        if (!userId.equals(cart.getUserId())) {
+            log.warn("Unauthorized cart item access: userId={} tried to access cartId={}", userId, cart.getCartId());
             throw new AccessDeniedException("You do not have access to this cart item");
         }
-        return item;
     }
 
-    private CartItemResponse toItemResponse(CartItem cartItem) {
-        Item item = itemRepository.getItemById(cartItem.getItemId());
+    private CartItemResponse toCartItemResponse(Item item, CartItem cartItem) {
+        User user = SecurityUtils.getCurrentUser();
         return CartItemResponse.builder()
                 .cartItemId(cartItem.getCartItemId())
                 .itemId(cartItem.getItemId())
+                .itemName(item.getItemName())
+                .itemDesc(item.getItemDesc())
                 .quantity(cartItem.getQuantity())
                 .price(item.getPrice())
                 .retailPrice(item.getRetailPrice())
-                .addedAt(cartItem.getAddedAt())
+                .createdAt(cartItem.getCreatedAt())
                 .updatedAt(cartItem.getUpdatedAt())
                 .build();
     }
 
-    private CartResponse toCartResponse(Cart cart, List<CartItem> items) {
-        List<CartItemResponse> itemResponses = items.stream()
-                .map(this::toItemResponse)
+    private CartResponse toCartResponse(Cart cart, List<CartItem> cartItems, List<Item> items) {
+        List<CartItemResponse> itemResponses = cartItems.stream()
+                .map(cartItem -> {
+                    Item item = items.stream()
+                            .filter(i -> i.getItemId() == cartItem.getItemId())
+                            .findFirst()
+                            .orElseThrow(() -> new ResourceNotFoundException("Item not found for cart item: " + cartItem.getCartItemId()));
+                    return toCartItemResponse(item, cartItem);
+                })
                 .toList();
 
         return CartResponse.builder()

@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartItem {
-    private int cartItemId;
-    private int cartId;
+    private String cartItemId;
+    private String cartId;
     private int itemId;
     private int quantity;
-    private LocalDateTime addedAt;
+    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

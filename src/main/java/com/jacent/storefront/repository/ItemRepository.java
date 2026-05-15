@@ -1,5 +1,6 @@
 package com.jacent.storefront.repository;
 
+import com.jacent.storefront.dto.helper.ItemWithStoreIds;
 import com.jacent.storefront.dto.request.ItemsFilterRequest;
 import com.jacent.storefront.exception.ResourceRetrievalException;
 import com.jacent.storefront.query.ItemQueries;
@@ -13,6 +14,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -28,9 +31,10 @@ public class ItemRepository {
     @Autowired
     ItemQueries itemQueries;
 
-    public Item getItemById(int itemId) {
+    public Item getItemById(int storeId, int itemId) {
         log.debug("Fetching item with ID: {}", itemId);
         MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("storeId", storeId);
         params.addValue("itemId", itemId);
         try {
             return namedParameterJdbcTemplate.queryForObject(
@@ -47,16 +51,15 @@ public class ItemRepository {
         }
     }
 
-    public List<Item> getAllItemsPagination(int page, int size, Integer storeId) {
-        log.debug("Fetching items for store: {} - page: {}, size: {}", storeId, page, size);
-
-        long offset = (long) page * size;
+    public List<Item> getAllItemsPagination(int pageNo, int pageSize, Integer storeId) {
+        log.debug("Fetching items for store: {} - pageNo: {}, pageSize: {}", storeId, pageNo, pageSize);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("storeId", storeId);
         StringBuilder sql = new StringBuilder(itemQueries.getAllItemsByStoreId());
-        appendPageSizeAndOffset(sql, offset, size, params);
-
+        if(pageSize > 0){
+            appendPageSizeAndOffset(sql, pageNo, pageSize, params);
+        }
         try {
             List<Item> items = namedParameterJdbcTemplate.query(
                     sql.toString(),
@@ -96,16 +99,14 @@ public class ItemRepository {
     }
 
     public List<Item> getAllItemsFilterAndPagination(Integer storeId, ItemsFilterRequest itemsFilterRequest) {
-        log.debug("Fetching items with filter for store: {} - page: {}, size: {}", storeId, itemsFilterRequest.getPageNo(), itemsFilterRequest.getPageSize());
-
-        long offset = (long) itemsFilterRequest.getPageNo() * itemsFilterRequest.getPageSize();
+        log.debug("Fetching items with filter for store: {} - pageNo: {}, pageSize: {}", storeId, itemsFilterRequest.getPageNo(), itemsFilterRequest.getPageSize());
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("storeId", storeId);
 
         StringBuilder sql = new StringBuilder(itemQueries.getAllItemsByStoreId());
         appendCommodityAndPriceFilterQuery(sql, itemsFilterRequest, params);
-        appendPageSizeAndOffset(sql, offset, itemsFilterRequest.getPageSize(), params);
+        appendPageSizeAndOffset(sql,  itemsFilterRequest.getPageNo(), itemsFilterRequest.getPageSize(), params);
 
         try {
             List<Item> items = namedParameterJdbcTemplate.query(
@@ -121,16 +122,17 @@ public class ItemRepository {
         }
     }
 
-    private static void appendPageSizeAndOffset(StringBuilder sql, long offset, int size, MapSqlParameterSource params) {
+    private static void appendPageSizeAndOffset(StringBuilder sql, int pageNo, int pageSize, MapSqlParameterSource params) {
+        long offset = (long) pageNo * pageSize;
         sql.append("LIMIT :size OFFSET :offset");
-        params.addValue("size", size);
+        params.addValue("size", pageSize);
         params.addValue("offset", (int) offset);
     }
 
     private static void appendCommodityAndPriceFilterQuery(StringBuilder sql, ItemsFilterRequest itemsFilterRequest, MapSqlParameterSource params) {
-        if (itemsFilterRequest.getCommodityIds() != null && !itemsFilterRequest.getCommodityIds().isEmpty()) {
-            sql.append(" AND COMMODITY_ID IN (:commodityIds) ");
-            params.addValue("commodityIds", itemsFilterRequest.getCommodityIds());
+        if (itemsFilterRequest.getCommodities() != null && !itemsFilterRequest.getCommodities().isEmpty()) {
+            sql.append(" AND COMMODITY IN (:commodityIds) ");
+            params.addValue("commodityIds", itemsFilterRequest.getCommodities());
         }
 
         if (itemsFilterRequest.getPriceRangeMin() != null && itemsFilterRequest.getPriceRangeMin() != null && itemsFilterRequest.getPriceRangeMin().intValue() > 0 && itemsFilterRequest.getPriceRangeMax().intValue() > 0) {
@@ -180,6 +182,74 @@ public class ItemRepository {
         } catch (DataAccessException e) {
             log.error("Search failed for keyword: {} in store: {}", keyword, storeId, e);
             throw new ResourceRetrievalException("Search operation failed", e);
+        }
+    }
+
+    public List<Item> getAllItemsByIdIn(Integer storeId, List<Integer> itemIds) {
+        log.debug("Fetching items for itemIds: {}",itemIds);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("storeId", storeId);
+        params.addValue("itemIds", itemIds);
+
+        try {
+            List<Item> items = namedParameterJdbcTemplate.query(
+                    itemQueries.getAllItemsByIdIn(),
+                    params,
+                    ITEM_ROW_MAPPER
+            );
+            log.debug("Retrieved items for itemIds: {}", itemIds);
+            return items;
+        } catch (DataAccessException e) {
+            log.error("Failed to retrieve items for itemIds: {}", itemIds, e);
+            throw new ResourceRetrievalException("Failed to retrieve items", e);
+        }
+    }
+
+    public List<ItemWithStoreIds> getAllItemsWithStoreIdsAndPagination(int pageNo, int pageSize) {
+        log.debug("Fetching all items with storeIds for pageNo: {}, pageSize: {}", pageNo, pageSize);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        long offset = (long) pageNo * pageSize;
+        params.addValue("size", pageSize);
+        params.addValue("offset", (int) offset);
+
+        StringBuilder sql = new StringBuilder(itemQueries.getAllItemsWithStoreIds());
+        try {
+            List<ItemWithStoreIds> items = namedParameterJdbcTemplate.query(
+                    sql.toString(),
+                    params,
+                    (rs, rowNum) -> {
+
+                        ItemWithStoreIds item = new ItemWithStoreIds();
+
+                        item.setItemId(rs.getInt("ITEM_ID"));
+                        item.setItemName(rs.getString("ITEM_NAME"));
+                        item.setItemDesc(rs.getString("ITEM_DESC"));
+                        item.setPrice(rs.getBigDecimal("PRICE"));
+                        item.setRetailPrice(rs.getBigDecimal("RETAIL_PRICE"));
+                        item.setUpcCode(rs.getString("UPC_CODE"));
+                        item.setDivision(rs.getString("DIVISION"));
+                        item.setCommodity(rs.getString("COMMODITY"));
+                        String storeIdsStr = rs.getString("STORE_IDS");
+
+                        List<Integer> storeIds;
+                        if (storeIdsStr != null && !storeIdsStr.isEmpty()) {
+                            storeIds = Arrays.stream(storeIdsStr.split(","))
+                                    .map(Integer::parseInt)
+                                    .toList();
+                        } else {
+                            storeIds = Collections.emptyList();
+                        }
+                        item.setStoreIds(storeIds);
+                        return item;
+                    }
+            );
+            log.debug("Retrieved {} all items with storeIds", items.size());
+            return items;
+        } catch (DataAccessException e) {
+            log.error("Failed to retrieve all items with storeIds, Error:  {}", e);
+            throw new ResourceRetrievalException("Failed to retrieve all items with storeIds", e);
         }
     }
 }

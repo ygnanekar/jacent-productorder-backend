@@ -1,5 +1,6 @@
 package com.jacent.storefront.service.impl;
 
+import com.jacent.storefront.dto.helper.ItemWithStoreIds;
 import com.jacent.storefront.dto.request.ItemsFilterRequest;
 import com.jacent.storefront.dto.response.FilterOptions;
 import com.jacent.storefront.dto.response.ItemsResponse;
@@ -14,6 +15,7 @@ import com.jacent.storefront.service.OpenSearchService;
 import com.jacent.storefront.utils.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -78,13 +80,18 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> searchItems(String searchKeyword) throws IOException {
+        User user = SecurityUtils.getCurrentUser();
         boolean enableFullTextOpenSearch = configurationService.getValueAsBoolean(Configuration.ENABLE_FULL_TEXT_OPEN_SEARCH, false);
         if(enableFullTextOpenSearch && !StringUtils.isEmpty(searchKeyword)){
-            return openSearchService.searchItems(searchKeyword.trim());
+            List<ItemWithStoreIds> itemWithStoreIds = openSearchService.searchItems(searchKeyword.trim());
+            return itemWithStoreIds.stream()
+                    .filter(item -> item.getStoreIds().contains(user.getStoreId()))
+                    .map(item -> {
+                        return (Item) item;
+                    }).toList();
         } else {
             // Search from DB
-            String escapedKeyword = escapeSearchKeyword(searchKeyword.trim());
-            User user = SecurityUtils.getCurrentUser();
+            String escapedKeyword = escapeSearchKeyword(searchKeyword.trim()).toLowerCase();
             Integer pageSize = configurationService.getValueAsInteger(Configuration.PAGINATION_SIZE, 25);
             return itemRepository.searchItemsByStoreIdAndSearchKeyword(user.getStoreId(), escapedKeyword, pageSize);
         }
@@ -93,10 +100,27 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public void rebuildOpenSearchIndexForItems() {
         try {
-            // TODO: add in bulk (maybe create separate index for store)
-            User user = SecurityUtils.getCurrentUser();
-            List<Item> itemList = itemRepository.getAllItemsPagination(0, 1000, user.getStoreId());
-            openSearchService.bulkIndexProducts(itemList);
+            boolean isOpenSearchHealthy = openSearchService.isOpenSearchHealthy();
+            if (!isOpenSearchHealthy){
+                log.error("OpenSearch is not healthy. Skipping rebuild index for items.");
+                return;
+            }
+            log.info("OpenSearch is healthy. Starting to rebuild index for items.");
+            int pageNo = 0;
+            int pageSize = 1000;
+            while (true){
+                try {
+                    List<ItemWithStoreIds> itemList = itemRepository.getAllItemsWithStoreIdsAndPagination(pageNo, pageSize);
+                    if (ObjectUtils.isEmpty(itemList)) {
+                        log.info("No more records. Batch processing completed.");
+                        break;
+                    }
+                    openSearchService.bulkIndexProducts(itemList);
+                    pageNo++;
+                } catch (Exception e){
+                    log.error("Error occured while bulkIndexProducts. Error {}", e);
+                }
+            }
         } catch (Exception e){
             log.error("Error occured while bulkIndexProducts");
         }
@@ -105,14 +129,14 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public FilterOptions getFilterOptions() {
         User user = SecurityUtils.getCurrentUser();
-        Store store = storeRepository.findStoreByStoreId(user.getStoreId());
-        Location location = storeRepository.findLocationByLocationId(store.getLocationId());
-        List<Division> divisions = divisionRepository.findAllDivisionsByStoreId(store.getStoreId());
-        List<Commodity> commodities = commodityRepository.findAllCommoditiesByStoreId(store.getStoreId());
+//        Store store = storeRepository.findStoreByStoreId(user.getStoreId());
+//        Location location = storeRepository.findLocationByLocationId(store.getLocationId());
+//        List<Division> divisions = divisionRepository.findAllDivisionsByStoreId(user.getStoreId());
+        List<Commodity> commodities = commodityRepository.findAllCommoditiesByStoreId(user.getStoreId());
         FilterOptions filterOptions = FilterOptions.builder()
-                .store(store)
-                .location(location)
-                .divisions(divisions)
+//                .store(store)
+//                .location(location)
+//                .divisions(divisions)
                 .commodities(commodities)
                 .build();
         return filterOptions;

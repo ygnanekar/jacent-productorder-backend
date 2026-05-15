@@ -1,10 +1,12 @@
 package com.jacent.storefront.service.impl;
 
+import com.jacent.storefront.dto.helper.ItemWithStoreIds;
 import com.jacent.storefront.entity.Item;
 import com.jacent.storefront.service.OpenSearchService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.HealthStatus;
 import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
@@ -27,6 +29,17 @@ public class OpenSearchServiceImpl implements OpenSearchService {
 
     OpenSearchServiceImpl(OpenSearchClient openSearchClient) {
         this.openSearchClient = openSearchClient;
+    }
+
+    @Override
+    public boolean isOpenSearchHealthy() {
+        try {
+            HealthStatus status = openSearchClient.cluster().health().status();
+            return status == HealthStatus.Green || status == HealthStatus.Yellow;
+        } catch (Exception e) {
+            log.error("OpenSearch health check failed", e);
+            return false;
+        }
     }
 
     @PostConstruct
@@ -90,7 +103,7 @@ public class OpenSearchServiceImpl implements OpenSearchService {
 
     // Bulk load multiple items (efficient for large datasets)
     @Override
-    public void bulkIndexProducts(List<Item> items) throws IOException {
+    public void bulkIndexProducts(List<ItemWithStoreIds> items) throws IOException {
         BulkRequest.Builder bulkRequest = new BulkRequest.Builder();
 
         for (Item item : items) {
@@ -117,9 +130,9 @@ public class OpenSearchServiceImpl implements OpenSearchService {
     }
 
     @Override
-    public List<Item> searchItems(String searchString) throws IOException {
+    public List<ItemWithStoreIds> searchItems(String searchString) throws IOException {
 
-        SearchResponse<Item> response = openSearchClient.search(s -> s
+        SearchResponse<ItemWithStoreIds> response = openSearchClient.search(s -> s
                         .index(INDEX_NAME)
                         .query(q -> q
                                 .bool(b -> b
@@ -168,7 +181,7 @@ public class OpenSearchServiceImpl implements OpenSearchService {
                                 )
                         )
                         .size(50),   // limit results
-                Item.class
+                ItemWithStoreIds.class
         );
 
         return response.hits().hits()
