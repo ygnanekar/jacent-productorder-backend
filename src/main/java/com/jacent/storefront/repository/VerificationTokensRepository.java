@@ -36,7 +36,7 @@ public class VerificationTokensRepository {
                     .id(rs.getLong("id"))
                     .token(rs.getString("token"))
                     .tokenType(TokenType.valueOf(rs.getString("token_type")))
-                    .userId(rs.getInt("user_id"))
+                    .userId(rs.getString("user_id"))
                     .expiresAt(rs.getTimestamp("expires_at").toLocalDateTime())
                     .used(rs.getBoolean("used"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
@@ -101,7 +101,7 @@ public class VerificationTokensRepository {
         }
     }
 
-    public void deleteByUserAndType(int userId, TokenType type) {
+    public void deleteByUserAndType(String userId, TokenType type) {
         log.info("Deleting verification tokens for userId: {}, type: {}", userId, type);
         try {
             int rows = namedParameterJdbcTemplate.update(

@@ -62,7 +62,7 @@ public class UserRepository {
         }
     }
 
-    public User findByUserId(int userId) {
+    public User findByUserId(String userId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("userId", userId);
@@ -110,7 +110,7 @@ public class UserRepository {
         return user;
     }
 
-    public int activateUser(int userId, String encodedPassword) {
+    public int activateUser(String userId, String encodedPassword) {
         log.info("Activating user with userId: {}", userId);
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
@@ -136,7 +136,7 @@ public class UserRepository {
         }
     }
 
-    public void updatePassword(long userId, String encodedPassword) {
+    public void updatePassword(String userId, String encodedPassword) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                     .addValue("encodedPassword", encodedPassword)

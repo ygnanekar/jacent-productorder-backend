@@ -15,7 +15,7 @@ public class VerificationToken {
 
     private Long id;
 
-    private int userId;
+    private String userId;
 
     private String token;
 
