@@ -2,7 +2,9 @@ package com.jacent.storefront.configuration;
 
 import com.jacent.storefront.security.CustomUserDetailsService;
 import com.jacent.storefront.security.JwtAuthenticationFilter;
+import com.jacent.storefront.security.RequestLoggingFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +29,14 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
+
+    @Bean
+    public FilterRegistrationBean<RequestLoggingFilter> loggingFilter(RequestLoggingFilter requestLoggingFilter) {
+        FilterRegistrationBean<RequestLoggingFilter> bean = new FilterRegistrationBean<>();
+        bean.setFilter(requestLoggingFilter);
+        bean.setOrder(1); // runs before JWT filter
+        return bean;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
