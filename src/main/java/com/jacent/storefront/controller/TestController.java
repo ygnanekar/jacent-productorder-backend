@@ -13,11 +13,8 @@ public class TestController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    private final ItemService itemService;
-
-    TestController(JdbcTemplate jdbcTemplate, ItemService itemService) {
+    TestController(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.itemService = itemService;
     }
 
     @GetMapping("/dbconnection")
@@ -28,11 +25,5 @@ public class TestController {
         } else {
             return ResponseEntity.status(500).body("Database connection failed!");
         }
-    }
-
-    @GetMapping("/rebuild-opensearch-index")
-    public ResponseEntity<?> rebuildOpenSearchIndex() {
-        itemService.rebuildOpenSearchIndexForItems();
-        return ResponseEntity.ok("Rebuild OpenSearch index initiated...!");
     }
 }
